@@ -57,7 +57,7 @@ class Point:
             return 0
 
     def __str__(self):
-        return f'Point({self.x}, {self.y})'
+        return f'Point({self.x:.0f}, {self.y:.0f})'
 
     def to_tuple(self) -> Tuple[float, float]:
         return self.x, self.y
@@ -114,7 +114,7 @@ class Vector:
         return Vector(-self.x, -self.y)
 
     def __str__(self) -> str:
-        return f'Vector(x={self.x}, y={self.y})'
+        return f'Vector(x={self.x:.2f}, y={self.y:.2f})'
 
     def to_point(self) -> Point:
         return Point(self.x, self.y)
@@ -228,7 +228,7 @@ if __name__ == '__main__':
     )
 
     # required vars
-    particles = PRESETS[-1]
+    particles = PRESETS[2]
     total_time_passed = 0
     selected_particle_i = None
 
