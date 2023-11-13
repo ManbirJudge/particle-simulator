@@ -15,15 +15,14 @@ pygame.display.set_caption('Particle Simulator | by Manbir Judge')
 WIDTH = 800
 HEIGHT = 800
 BG_COLOR = (27, 36, 48)
-FPS = 120
+FPS = 500
 FONTS = pygame.font.get_fonts()
-PPM = 1
 
 CHARGE_COLOR_NEG = (255, 51, 51)
 CHARGE_COLOR_POS = (91, 192, 222)
 
-k = 1
-G = 6.67430 * (10 ** -11)
+k = 9 * 10 ** 9  # Coulomb's constant
+G = 6.67430 * (10 ** -11)  # gravitational constant
 BOUNCE_SLOWDOWN_FACTOR = 0.8
 
 
@@ -57,7 +56,7 @@ class Point:
             return 0
 
     def __str__(self):
-        return f'Point({self.x:.0f}, {self.y:.0f})'
+        return f'Point({self.x}, {self.y})'
 
     def to_tuple(self) -> Tuple[float, float]:
         return self.x, self.y
@@ -101,7 +100,7 @@ class Vector:
             return Vector(self.x * other, self.y * other)
 
         else:
-            raise Exception('Error while dividing a vector.')
+            raise Exception('Error while multiplying a vector.')
 
     def __truediv__(self, other):
         if type(other) == float or type(other) == int:
@@ -114,14 +113,14 @@ class Vector:
         return Vector(-self.x, -self.y)
 
     def __str__(self) -> str:
-        return f'Vector(x={self.x:.2f}, y={self.y:.2f})'
+        return f'Vec(x={self.x}, y={self.y})'
 
     def to_point(self) -> Point:
         return Point(self.x, self.y)
 
 
 class Particle:
-    def __init__(self, charge: int, mass: float, pos: Point, vel: Vector = Vector(0, 0)):
+    def __init__(self, charge: float, mass: float, pos: Point, vel: Vector = Vector(0, 0)):
         self.charge = charge
         self.mass = mass
         self.pos = pos
@@ -138,6 +137,30 @@ class Particle:
             return self.charge * other.charge
         else:
             return self.charge * other
+
+    def __str__(self):
+        return f'Particle(\n\tposition={self.pos}\n\tmass={self.mass} kg\n\tcharge={self.charge} C\n\tvelocity={self.vel} m/s\n)'
+
+
+class Electron(Particle):
+    def __init__(self, pos: Point, vel: Vector = Vector(0, 0)):
+        super().__init__(-(1.6 * 10 ** -19), 9.1 * 10 ** -31, pos, vel)
+
+
+class Proton(Particle):
+    def __init__(self, pos: Point, vel: Vector = Vector(0, 0)):
+        super().__init__(1.6 * 10 ** -19, 1.6 * 10 ** -27, pos, vel)
+
+        self.pos = pos
+        self.vel = vel
+
+
+class Neutron(Particle):
+    def __init__(self, pos: Point, vel: Vector = Vector(0, 0)):
+        super().__init__(0, 1.6 * 10 ** -27, pos, vel)
+
+        self.pos = pos
+        self.vel = vel
 
 
 def distance(p1: Point, p2: Point) -> float:
@@ -159,18 +182,18 @@ def time_ms_to_str(ms: int) -> str:
 
 PRESETS = [
     [
-        Particle(-5, 1, Point(WIDTH / 4, HEIGHT / 2)),
-        Particle(5, 1, Point(WIDTH / 2, HEIGHT / 2)),
-        Particle(-5, 1, Point(WIDTH * 3 / 4, HEIGHT / 2)),
+        Electron(Point(100, 100)),
+        Proton(Point(110, 100)),
     ],
     [
-        Particle(-5, 1, Point(WIDTH / 4, HEIGHT / 4)),
-        Particle(5, 1, Point(WIDTH / 2, HEIGHT / 2)),
-        Particle(-5, 1, Point(WIDTH * 3 / 4, HEIGHT / 4)),
+        Electron(Point(WIDTH / 4, HEIGHT / 2)),
+        Proton(Point(WIDTH / 2, HEIGHT / 2)),
+        Electron(Point(WIDTH * 3 / 4, HEIGHT / 2)),
     ],
     [
-        Particle(-15, 0.1, Point(0, 0), Vector(30, 22)),
-        Particle(15, 1, Point(WIDTH / 2, HEIGHT / 2)),
+        Electron(Point(WIDTH / 4, HEIGHT / 4)),
+        Proton(Point(WIDTH / 2, HEIGHT / 2)),
+        Electron(Point(WIDTH * 3 / 4, HEIGHT / 4)),
     ],
     [
         Particle(0, 1, Point(10, (HEIGHT / 2) - 10), Vector(100, 0)),
@@ -186,10 +209,10 @@ PRESETS = [
         # Particle(0, 1, Point(10, (HEIGHT / 2) + 50), Vector(100, 0)),
     ],
     [
-        Particle(0, 1, random_point(), Vector(0, 0)),
-        Particle(-5, 1, random_point()),
-        Particle(5, 1, random_point()),
-        Particle(5, 1, random_point()),
+        Neutron(random_point(), Vector(0, 0)),
+        Electron(random_point()),
+        Proton(random_point()),
+        Proton(random_point()),
     ]
 ]
 
@@ -229,13 +252,13 @@ if __name__ == '__main__':
 
     # required vars
     particles = PRESETS[2]
-    total_time_passed = 0
+    total_sim_time_passed = 0
     selected_particle_i = None
 
     # configurable vars
     particle_radius = 4
     labels = False
-    sim_speed = 2
+    sim_speed = 1
     paused = False
 
     # mainloop
@@ -243,11 +266,11 @@ if __name__ == '__main__':
         # bg
         screen.fill(BG_COLOR)
 
-        # time
+        # --- time ---
         delta_t = clock.get_time()
         sim_delta_t = delta_t * sim_speed
 
-        # events
+        # --- events ---
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -293,7 +316,7 @@ if __name__ == '__main__':
 
         ui_manager.update(delta_t)
 
-        # main drawing logic
+        # --- main drawing logic ---
         for i, charge in enumerate(particles):
             charge_color = (255, 255, 255)
 
@@ -312,12 +335,12 @@ if __name__ == '__main__':
 
         ui_manager.draw_ui(screen)
 
-        # --- main logic ---
+        # --- simulation logic ---
         if not paused:
-            total_time_passed += sim_delta_t
+            total_sim_time_passed += sim_delta_t
 
             # calculating forces
-            for P in particles:
+            for i, P in enumerate(particles):
                 F_eq = Vector(0, 0)
 
                 F_e_eq = Vector(0, 0)
@@ -348,8 +371,8 @@ if __name__ == '__main__':
 
             # updating positions
             for P in particles:
-                P.pos.x += P.vel.x * (PPM * sim_delta_t / 1000)
-                P.pos.y += P.vel.y * (PPM * sim_delta_t / 1000)
+                P.pos.x += P.vel.x * (sim_delta_t / 1000)
+                P.pos.y += P.vel.y * (sim_delta_t / 1000)
 
                 if P.pos.x > WIDTH:
                     P.pos.x = WIDTH
@@ -366,14 +389,14 @@ if __name__ == '__main__':
                     P.vel = Vector(P.vel.x, -P.vel.y) * BOUNCE_SLOWDOWN_FACTOR
 
             # checking collision
-            for P in particles:
-                for p in particles:
-                    pass
+            # for P in particles:
+            #     for p in particles:
+            #         pass
 
-        # --- stats ---
+        # --- stats ui ---
         # main stats
         screen.blit(main_font.render(f'FPS: {clock.get_fps():.0f}', True, (255, 255, 0)), (0, 0))
-        screen.blit(main_font.render(f'Time: {time_ms_to_str(total_time_passed)}', True, (255, 255, 0)), (0, 20))
+        screen.blit(main_font.render(f'Time: {time_ms_to_str(total_sim_time_passed)}', True, (255, 255, 0)), (0, 20))
 
         # configurable vars stats
         particle_radius_text = main_font.render(f'Particle radius: {particle_radius} px', True, (255, 255, 0))
@@ -396,6 +419,5 @@ if __name__ == '__main__':
             screen.blit(p_stats_text, (0, HEIGHT - p_stats_text.get_height()))
 
         # updating the display and ticking the clock
-        # run = False
         pygame.display.update()
-        clock.tick(FPS)
+        clock.tick()
