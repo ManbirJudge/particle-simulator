@@ -15,7 +15,7 @@ pygame.display.set_caption('Particle Simulator | by Manbir Judge')
 WIDTH = 800
 HEIGHT = 800
 BG_COLOR = (27, 36, 48)
-FPS = 500
+FPS = 120
 FONTS = pygame.font.get_fonts()
 
 CHARGE_COLOR_NEG = (255, 51, 51)
@@ -316,6 +316,8 @@ if __name__ == '__main__':
 
         ui_manager.update(delta_t)
 
+        FPS = sim_speed * 30
+
         # --- main drawing logic ---
         for i, charge in enumerate(particles):
             charge_color = (255, 255, 255)
@@ -367,7 +369,7 @@ if __name__ == '__main__':
                 F_eq = F_e_eq + F_g_eq
                 a = F_eq / P.mass
 
-                P.vel += a
+                P.vel += a * (sim_delta_t / 1000)
 
             # updating positions
             for P in particles:
@@ -387,11 +389,6 @@ if __name__ == '__main__':
                 elif P.pos.y < 0:
                     P.pos.y = 0
                     P.vel = Vector(P.vel.x, -P.vel.y) * BOUNCE_SLOWDOWN_FACTOR
-
-            # checking collision
-            # for P in particles:
-            #     for p in particles:
-            #         pass
 
         # --- stats ui ---
         # main stats
@@ -420,4 +417,4 @@ if __name__ == '__main__':
 
         # updating the display and ticking the clock
         pygame.display.update()
-        clock.tick()
+        clock.tick(FPS)
